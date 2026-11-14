@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ULTRON OS // Neural Workstation</title>
+  
+  <!-- PWA Manifest & Theme -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#02040a">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Monaco Editor Loader -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap');
+
+    :root {
+      --bg-void: #02040a;
+      --neon-cyan: #00f3ff;
+      --neon-orange: #ff5e00;
+      --glass-surface: rgba(14, 24, 44, 0.42);
+      --glass-border: rgba(255, 255, 255, 0.14);
+      --text-main: #f1f5f9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-void);
+      color: var(--text-main);
+      font-family: 'Share Tech Mono', monospace;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      padding: 12px;
+      position: relative;
+    }
+
+    /* SPLASH SCREEN */
+    #splash-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 4, 10, 0.92);
+      backdrop-filter: blur(25px);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.8s ease, visibility 0.8s;
+    }
+    #splash-screen.fade-out { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .splash-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 6px;
+      color: #fff;
+      text-shadow: 0 0 15px rgba(0, 243, 255, 0.8);
+      margin-bottom: 6px;
+    }
+    .splash-sub { font-size: 0.8rem; color: var(--neon-orange); letter-spacing: 2px; margin-bottom: 20px; }
+
+    /* MAIN SHELL */
+    .ultron-glass-shell {
+      width: 100%; max-width: 950px; height: 92vh;
+      background: var(--glass-surface);
+      backdrop-filter: blur(22px);
+      border: 1px solid var(--glass-border);
+      border-top: 1px solid rgba(0, 243, 255, 0.45);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.65);
+      border-radius: 18px;
+      display: flex; flex-direction: column;
+      position: relative; overflow: hidden;
+      opacity: 0; transform: scale(0.97);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    .ultron-glass-shell.visible { opacity: 1; transform: scale(1); }
+
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 22px; background: rgba(8, 15, 30, 0.6);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .brand h1 { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; letter-spacing: 2px; color: #fff; }
+
+    .chat-viewport { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+    .message { max-width: 80%; padding: 12px 16px; border-radius: 10px; font-size: 0.92rem; line-height: 1.5; }
+    .msg-ultron { background: rgba(0, 243, 255, 0.08); border-left: 3px solid var(--neon-cyan); color: #e0f2fe; }
+    .msg-user { background: rgba(255, 94, 0, 0.12); border-right: 3px solid var(--neon-orange); color: #ffedd5; align-self: flex-end; }
+
+    .command-bar { display: flex; gap: 10px; padding: 14px 20px; background: rgba(8, 15, 30, 0.7); border-top: 1px solid var(--glass-border); }
+    .command-bar input {
+      flex: 1; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff; padding: 12px 16px; border-radius: 10px; font-family: inherit; outline: none; font-size: 0.95rem;
+    }
+    .command-bar input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 12px rgba(0, 243, 255, 0.25); }
+    .send-btn {
+      background: linear-gradient(135deg, var(--neon-cyan), #0284c7); color: #000; border: none;
+      padding: 0 22px; border-radius: 10px; font-family: 'Orbitron', sans-serif; font-weight: 800; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SPLASH SCREEN -->
+  <div id="splash-screen">
+    <div class="splash-title">ULTRON OS</div>
+    <div class="splash-sub">INITIALIZING WORKSTATION...</div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div class="ultron-glass-shell" id="mainShell">
+    <div class="top-bar">
+      <div class="brand"><h1>ULTRON // PWA EDITION</h1></div>
+      <div style="font-size: 0.75rem; color: var(--neon-cyan);">STATUS: ONLINE</div>
+    </div>
+
+    <div class="chat-viewport" id="chatViewport">
+      <div class="message msg-ultron">
+        <b>ULTRON CORE:</b> Welcome! You are now running ULTRON as a Progressive Web App.
+      </div>
+    </div>
+
+    <div class="command-bar">
+      <input type="text" id="userInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+      <button class="send-btn" onclick="sendMessage()">SEND</button>
+    </div>
+  </div>
+
+  <script>
+    // 10-Second Boot Sequence simulation
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        document.getElementById('splash-screen').classList.add('fade-out');
+        document.getElementById('mainShell').classList.add('visible');
+      }, 1500);
+
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log('PWA Service Worker Registered'))
+          .catch(err => console.log('SW Registration Failed', err));
+      }
+    });
+
+    function sendMessage() {
+      const input = document.getElementById('userInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendMsg(text, 'msg-user');
+      input.value = '';
+
+      setTimeout(() => {
+        appendMsg(`Echo from ULTRON: I received your message -> "${text}"`, 'msg-ultron');
+      }, 400);
+    }
+
+    function appendMsg(text, className) {
+      const viewport = document.getElementById('chatViewport');
+      const div = document.createElement('div');
+      div.className = `message ${className}`;
+      div.innerText = text;
+      viewport.appendChild(div);
+      viewport.scrollTop = viewport.scrollHeight;
+    }
+  </script>
+</body>
+  </html>
