@@ -3,13 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ULTRON OS // Neural Workstation</title>
-  
-  <!-- PWA Manifest & Theme -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#02040a">
-  <link rel="apple-touch-icon" href="icon-192.png">
-
+  <title>ULTRON OS // Educational Hub, Monaco Editor & Windows CMD</title>
   <!-- Monaco Editor Loader -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
   <style>
@@ -19,12 +13,17 @@
       --bg-void: #02040a;
       --neon-cyan: #00f3ff;
       --neon-orange: #ff5e00;
+      --neon-purple: #a855f7;
       --glass-surface: rgba(14, 24, 44, 0.42);
       --glass-border: rgba(255, 255, 255, 0.14);
       --text-main: #f1f5f9;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       background-color: var(--bg-void);
@@ -39,135 +38,1162 @@
       position: relative;
     }
 
-    /* SPLASH SCREEN */
+    .ambient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(85px);
+      z-index: 0;
+      animation: floatOrb 8s infinite alternate ease-in-out;
+    }
+    .orb-1 { width: 320px; height: 320px; background: rgba(0, 243, 255, 0.35); top: 5%; left: 10%; }
+    .orb-2 { width: 350px; height: 350px; background: rgba(255, 94, 0, 0.28); bottom: 5%; right: 10%; animation-delay: -3s; }
+    .orb-3 { width: 240px; height: 240px; background: rgba(168, 85, 247, 0.25); top: 45%; left: 45%; animation-delay: -5s; }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(25px, -25px) scale(1.1); }
+    }
+
+    /* ================= SPLASH SCREEN (10-SECOND SMOOTH) ================= */
     #splash-screen {
       position: fixed;
       inset: 0;
-      background: rgba(2, 4, 10, 0.92);
+      background: rgba(2, 4, 10, 0.85);
       backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
       z-index: 9999;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      transition: opacity 0.8s ease, visibility 0.8s;
+      transition: opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.9s;
     }
-    #splash-screen.fade-out { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    #splash-screen.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .splash-core-ring {
+      width: 135px;
+      height: 135px;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 243, 255, 0.2);
+      border-top: 3px solid var(--neon-cyan);
+      border-bottom: 3px solid var(--neon-orange);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 35px rgba(0, 243, 255, 0.25), inset 0 0 20px rgba(255, 94, 0, 0.2);
+      animation: spinRing 3s linear infinite;
+      margin-bottom: 28px;
+    }
+
+    .splash-inner-orb {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--neon-cyan) 0%, rgba(0, 243, 255, 0.1) 70%);
+      box-shadow: 0 0 25px var(--neon-cyan);
+      animation: corePulse 1.5s infinite alternate;
+    }
+
+    @keyframes spinRing { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes corePulse { from { transform: scale(0.85); opacity: 0.7; } to { transform: scale(1.15); opacity: 1; } }
 
     .splash-title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 2.2rem;
+      font-size: 2.3rem;
       font-weight: 900;
-      letter-spacing: 6px;
+      letter-spacing: 8px;
       color: #fff;
-      text-shadow: 0 0 15px rgba(0, 243, 255, 0.8);
-      margin-bottom: 6px;
+      text-shadow: 0 0 18px rgba(0, 243, 255, 0.8);
+      margin-bottom: 8px;
     }
-    .splash-sub { font-size: 0.8rem; color: var(--neon-orange); letter-spacing: 2px; margin-bottom: 20px; }
 
-    /* MAIN SHELL */
+    .splash-subtitle {
+      font-size: 0.85rem;
+      letter-spacing: 3px;
+      color: var(--neon-orange);
+      margin-bottom: 24px;
+    }
+
+    .boot-bar-container {
+      width: 300px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      margin-bottom: 14px;
+    }
+
+    .boot-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-orange));
+      box-shadow: 0 0 12px var(--neon-cyan);
+      transition: width 0.1s linear;
+    }
+
+    .boot-status-text {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      letter-spacing: 1.5px;
+    }
+
+    /* ================= MAIN GLASSMORPHIC INTERFACE ================= */
     .ultron-glass-shell {
-      width: 100%; max-width: 950px; height: 92vh;
+      width: 100%;
+      max-width: 950px;
+      height: 92vh;
       background: var(--glass-surface);
-      backdrop-filter: blur(22px);
+      backdrop-filter: blur(22px) saturate(160%);
+      -webkit-backdrop-filter: blur(22px) saturate(160%);
       border: 1px solid var(--glass-border);
       border-top: 1px solid rgba(0, 243, 255, 0.45);
-      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.65);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.65), inset 0 0 25px rgba(255, 255, 255, 0.04);
       border-radius: 18px;
-      display: flex; flex-direction: column;
-      position: relative; overflow: hidden;
-      opacity: 0; transform: scale(0.97);
-      transition: opacity 0.8s ease, transform 0.8s ease;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+      opacity: 0;
+      transform: scale(0.97);
+      transition: opacity 0.9s ease, transform 0.9s ease;
     }
+
     .ultron-glass-shell.visible { opacity: 1; transform: scale(1); }
 
     .top-bar {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 14px 22px; background: rgba(8, 15, 30, 0.6);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 22px;
+      background: rgba(8, 15, 30, 0.55);
+      backdrop-filter: blur(15px);
       border-bottom: 1px solid var(--glass-border);
+      z-index: 10;
+      flex-shrink: 0;
     }
-    .brand h1 { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; letter-spacing: 2px; color: #fff; }
 
-    .chat-viewport { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-    .message { max-width: 80%; padding: 12px 16px; border-radius: 10px; font-size: 0.92rem; line-height: 1.5; }
-    .msg-ultron { background: rgba(0, 243, 255, 0.08); border-left: 3px solid var(--neon-cyan); color: #e0f2fe; }
-    .msg-user { background: rgba(255, 94, 0, 0.12); border-right: 3px solid var(--neon-orange); color: #ffedd5; align-self: flex-end; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .header-controls { display: flex; align-items: center; gap: 16px; }
 
-    .command-bar { display: flex; gap: 10px; padding: 14px 20px; background: rgba(8, 15, 30, 0.7); border-top: 1px solid var(--glass-border); }
+    .core-orb {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 14px var(--neon-cyan);
+      animation: pulse 1.5s infinite alternate;
+    }
+
+    @keyframes pulse { from { transform: scale(0.85); opacity: 0.7; } to { transform: scale(1.25); opacity: 1; } }
+
+    .brand h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.15rem;
+      letter-spacing: 2.5px;
+      color: #fff;
+      text-shadow: 0 0 12px rgba(0, 243, 255, 0.7);
+    }
+
+    .wiki-badge {
+      font-size: 0.72rem;
+      color: var(--neon-cyan);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(0, 243, 255, 0.1);
+      backdrop-filter: blur(8px);
+      white-space: nowrap;
+    }
+
+    .six-dot-btn {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      border-radius: 10px;
+      padding: 9px 11px;
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: repeat(3, 5px);
+      grid-template-rows: repeat(2, 5px);
+      gap: 4px;
+      transition: all 0.3s ease;
+    }
+
+    .six-dot-btn:hover {
+      background: rgba(0, 243, 255, 0.2);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+      transform: scale(1.06);
+    }
+
+    .six-dot-btn span { width: 5px; height: 5px; background-color: var(--neon-cyan); border-radius: 50%; transition: 0.3s; }
+    .six-dot-btn.active span { background-color: var(--neon-orange); }
+
+    .nav-drawer {
+      position: absolute;
+      top: 63px;
+      right: -280px;
+      width: 265px;
+      height: calc(100% - 63px);
+      background: rgba(7, 13, 26, 0.95);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border-left: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 20px;
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .nav-drawer.open { right: 0; }
+
+    .nav-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.8rem;
+      color: var(--neon-orange);
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 6px;
+    }
+
+    .nav-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      padding: 10px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      font-size: 0.85rem;
+      transition: 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-item:hover, .nav-item.active-tab {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 243, 255, 0.15);
+      color: var(--neon-cyan);
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.2);
+    }
+
+    /* ================= FULL-SCREEN SLIDE-OUT PANELS ================= */
+    .app-panel {
+      position: absolute;
+      top: 63px;
+      left: -100%;
+      width: 100%;
+      height: calc(100% - 63px);
+      background: rgba(4, 8, 18, 0.98);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .app-panel.open { left: 0; }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.92rem;
+      color: var(--neon-cyan);
+      letter-spacing: 1.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .engine-tag {
+      font-size: 0.65rem;
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid var(--neon-purple);
+      color: #e9d5ff;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .close-panel-btn {
+      background: rgba(255, 94, 0, 0.15);
+      border: 1px solid var(--neon-orange);
+      color: var(--neon-orange);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.75rem;
+      transition: 0.2s;
+    }
+    .close-panel-btn:hover { background: var(--neon-orange); color: #000; }
+
+    /* ================= CODING HUB PANEL ================= */
+    .lang-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 6px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .lang-tab {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.78rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      position: relative;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+
+    .lang-tab:hover { color: var(--text-main); }
+    .lang-tab.active { color: var(--neon-cyan); font-weight: 700; }
+
+    .lang-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -7px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    .monaco-wrapper {
+      flex: 1;
+      width: 100%;
+      min-height: 150px;
+      border: 1px solid rgba(0, 243, 255, 0.35);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      background: #1e1e1e;
+    }
+
+    #monacoContainer { width: 100%; height: 100%; }
+
+    .output-terminal {
+      background: rgba(2, 5, 12, 0.96);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-radius: 6px;
+      margin-top: 10px;
+      padding: 8px 12px;
+      height: 135px;
+      overflow-y: auto;
+      display: none;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .output-terminal.active { display: flex; }
+
+    .terminal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      color: var(--neon-cyan);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid rgba(0, 243, 255, 0.15);
+      padding-bottom: 4px;
+    }
+
+    .clear-out-btn { background: transparent; border: none; color: #94a3b8; font-size: 0.7rem; cursor: pointer; }
+    .clear-out-btn:hover { color: var(--neon-orange); }
+
+    .terminal-body {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.84rem;
+      color: #00ff66;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      flex: 1;
+    }
+
+    .live-preview-frame { width: 100%; height: 100%; border: none; background: #ffffff; border-radius: 4px; }
+
+    .coding-hub-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: rgba(8, 15, 30, 0.85);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 10px;
+      flex-shrink: 0;
+      width: 100%;
+    }
+
+    .file-save-group { display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+    .file-save-input {
+      background: #030712;
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.78rem;
+      outline: none;
+      width: 125px;
+    }
+
+    .save-btn {
+      background: rgba(0, 243, 255, 0.15);
+      border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      font-weight: bold;
+      transition: 0.2s;
+      white-space: nowrap;
+    }
+    .save-btn:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 8px var(--neon-cyan); }
+
+    .run-btn {
+      background: linear-gradient(135deg, rgba(0, 243, 255, 0.22), rgba(255, 94, 0, 0.22));
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--neon-cyan);
+      color: #fff;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+      white-space: nowrap;
+    }
+    .run-btn:hover { background: linear-gradient(135deg, var(--neon-cyan), var(--neon-orange)); color: #000; border-color: #fff; }
+
+    .play-icon {
+      width: 0; height: 0;
+      border-left: 7px solid currentColor;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+    }
+
+    /* ================= WINDOWS CMD TERMINAL PANEL ================= */
+    .cmd-screen {
+      flex: 1;
+      background: #000000;
+      border: 1px solid #38bdf8;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9rem;
+      color: #cccccc;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.1);
+    }
+
+    .cmd-output-history {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .cmd-input-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0a0f1c;
+      border: 1px solid #1e293b;
+      padding: 6px 10px;
+      border-radius: 4px;
+      width: 100%;
+    }
+
+    .cmd-prompt-label {
+      color: #00f3ff;
+      font-weight: bold;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .cmd-input-field {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.92rem;
+      outline: none;
+      min-width: 50px;
+    }
+
+    .cmd-exec-btn {
+      background: #00f3ff;
+      color: #000;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .cmd-exec-btn:hover { background: #38bdf8; }
+
+    /* ================= CHAT & WIKI UI ================= */
+    .chat-viewport {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-viewport::-webkit-scrollbar { width: 5px; }
+    .chat-viewport::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.35); border-radius: 4px; }
+
+    .message {
+      max-width: 82%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 0.94rem;
+      line-height: 1.55;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .msg-ultron {
+      align-self: flex-start;
+      background: rgba(0, 243, 255, 0.08);
+      border-left: 3px solid var(--neon-cyan);
+      color: #e0f2fe;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .msg-ultron .sender { font-size: 0.72rem; color: var(--neon-cyan); margin-bottom: 6px; letter-spacing: 1px; font-weight: bold; }
+
+    .msg-user {
+      align-self: flex-end;
+      background: rgba(255, 94, 0, 0.14);
+      border-right: 3px solid var(--neon-orange);
+      color: #ffedd5;
+    }
+
+    .msg-user .sender { font-size: 0.72rem; color: var(--neon-orange); margin-bottom: 5px; text-align: right; letter-spacing: 1px; }
+
+    .wiki-card-title { font-family: 'Orbitron', sans-serif; font-size: 1rem; color: #fff; margin-bottom: 6px; text-shadow: 0 0 8px rgba(0, 243, 255, 0.5); }
+
+    .wiki-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: var(--neon-cyan);
+      text-decoration: none;
+      font-size: 0.8rem;
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      padding: 4px 10px;
+      border-radius: 5px;
+      background: rgba(0, 243, 255, 0.1);
+      transition: 0.2s;
+    }
+    .wiki-link:hover { background: var(--neon-cyan); color: #000; }
+
+    .quick-chips {
+      display: flex;
+      gap: 8px;
+      padding: 9px 20px;
+      overflow-x: auto;
+      background: rgba(5, 10, 20, 0.35);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      color: var(--neon-cyan);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.76rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: 0.2s;
+    }
+    .chip:hover { background: var(--neon-cyan); color: #000; }
+
+    .command-bar {
+      display: flex;
+      gap: 10px;
+      padding: 14px 20px;
+      background: rgba(8, 15, 30, 0.65);
+      backdrop-filter: blur(18px);
+      border-top: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+
     .command-bar input {
-      flex: 1; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff; padding: 12px 16px; border-radius: 10px; font-family: inherit; outline: none; font-size: 0.95rem;
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: 0.2s;
     }
-    .command-bar input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 12px rgba(0, 243, 255, 0.25); }
+
+    .command-bar input:focus {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 243, 255, 0.08);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.25);
+    }
+
     .send-btn {
-      background: linear-gradient(135deg, var(--neon-cyan), #0284c7); color: #000; border: none;
-      padding: 0 22px; border-radius: 10px; font-family: 'Orbitron', sans-serif; font-weight: 800; cursor: pointer;
+      background: linear-gradient(135deg, var(--neon-cyan), #0284c7);
+      color: #000;
+      border: none;
+      padding: 0 24px;
+      border-radius: 10px;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: 0.2s;
     }
+    .send-btn:hover { box-shadow: 0 0 18px var(--neon-cyan); transform: translateY(-1px); }
   </style>
 </head>
 <body>
 
-  <!-- SPLASH SCREEN -->
+  <div class="ambient-orb orb-1"></div>
+  <div class="ambient-orb orb-2"></div>
+  <div class="ambient-orb orb-3"></div>
+
+  <!-- SPLASH SCREEN OVERLAY -->
   <div id="splash-screen">
-    <div class="splash-title">ULTRON OS</div>
-    <div class="splash-sub">INITIALIZING WORKSTATION...</div>
+    <div class="splash-core-ring">
+      <div class="splash-inner-orb"></div>
+    </div>
+    <div class="splash-title">ULTRON</div>
+    <div class="splash-subtitle">EDUCATIONAL CORE INITIALIZING</div>
+    <div class="boot-bar-container">
+      <div class="boot-bar-fill" id="bootBar"></div>
+    </div>
+    <div class="boot-status-text" id="bootText">LOADING GLASS MATRIX... 0%</div>
   </div>
 
-  <!-- MAIN APP -->
+  <!-- MAIN ULTRON INTERFACE -->
   <div class="ultron-glass-shell" id="mainShell">
+    
     <div class="top-bar">
-      <div class="brand"><h1>ULTRON // PWA EDITION</h1></div>
-      <div style="font-size: 0.75rem; color: var(--neon-cyan);">STATUS: ONLINE</div>
-    </div>
+      <div class="brand">
+        <div class="core-orb"></div>
+        <h1>ULTRON // WIKI-CORE</h1>
+      </div>
 
-    <div class="chat-viewport" id="chatViewport">
-      <div class="message msg-ultron">
-        <b>ULTRON CORE:</b> Welcome! You are now running ULTRON as a Progressive Web App.
+      <div class="header-controls">
+        <span class="wiki-badge" id="langBadge">WIKI: EN</span>
+        <button class="six-dot-btn" id="sixDotBtn" title="System Matrix">
+          <span></span><span></span><span></span>
+          <span></span><span></span><span></span>
+        </button>
       </div>
     </div>
 
+    <!-- 6-Dot Glass Drawer -->
+    <div class="nav-drawer" id="navDrawer">
+      <div class="nav-title">SYSTEM MATRIX</div>
+      <button class="nav-item active-tab" id="btnEn" onclick="setWikiLang('en')">
+        <span>01. English Wiki</span> <span>●</span>
+      </button>
+      <button class="nav-item" id="btnBn" onclick="setWikiLang('bn')">
+        <span>02. Bengali Wiki (বাংলা)</span> <span>○</span>
+      </button>
+      <button class="nav-item" onclick="toggleCodingHub()">
+        <span>03. Coding Hub &lt;/&gt;</span> <span>💻</span>
+      </button>
+      <button class="nav-item" onclick="toggleCmdPanel()">
+        <span>04. Windows CMD</span> <span>🖥️</span>
+      </button>
+      <button class="nav-item" onclick="clearTerminal()">
+        <span>05. Purge Terminal</span> <span>⚡</span>
+      </button>
+      <button class="nav-item" onclick="randomWikiArticle()">
+        <span>06. Random Knowledge</span> <span>🎲</span>
+      </button>
+    </div>
+
+    <!-- ================= CODING HUB PANEL ================= -->
+    <div class="app-panel" id="codingHubPanel">
+      <div class="panel-header">
+        <div class="panel-title">
+          &lt;/&gt; CODING HUB <span class="engine-tag">MONACO VS ENGINE</span>
+        </div>
+        <button class="close-panel-btn" onclick="toggleCodingHub()">CLOSE ✕</button>
+      </div>
+
+      <div class="lang-tabs" id="langTabs">
+        <button class="lang-tab active" onclick="switchLanguage('python', this)">Python</button>
+        <button class="lang-tab" onclick="switchLanguage('html', this)">HTML</button>
+        <button class="lang-tab" onclick="switchLanguage('javascript', this)">JavaScript</button>
+        <button class="lang-tab" onclick="switchLanguage('css', this)">CSS</button>
+        <button class="lang-tab" onclick="switchLanguage('typescript', this)">TypeScript</button>
+      </div>
+
+      <div class="monaco-wrapper">
+        <div id="monacoContainer"></div>
+      </div>
+
+      <div class="output-terminal" id="outputTerminal">
+        <div class="terminal-header">
+          <span>&gt;_ EXECUTION OUTPUT</span>
+          <button class="clear-out-btn" onclick="hideOutput()">HIDE ✕</button>
+        </div>
+        <div class="terminal-body" id="terminalOutputText"></div>
+      </div>
+
+      <div class="coding-hub-actions">
+        <div class="file-save-group">
+          <input type="text" class="file-save-input" id="fileNameInput" value="script.py">
+          <button class="save-btn" onclick="saveFile()">SAVE</button>
+        </div>
+        <button class="run-btn" onclick="runCode()">
+          <span class="play-icon"></span> RUN
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= WINDOWS CMD PANEL ================= -->
+    <div class="app-panel" id="cmdPanel">
+      <div class="panel-header">
+        <div class="panel-title">
+          🖥️ WINDOWS COMMAND PROMPT <span class="engine-tag">CMD SIMULATOR</span>
+        </div>
+        <button class="close-panel-btn" onclick="toggleCmdPanel()">CLOSE ✕</button>
+      </div>
+
+      <div class="cmd-screen" id="cmdScreen">
+        <div class="cmd-output-history" id="cmdOutputHistory">Microsoft Windows [Version 10.0.26100.1]
+(c) Microsoft Corporation. All rights reserved.
+
+Type "help" to see available commands (dir, ver, ipconfig, date, time, whoami, cls).
+</div>
+        <div class="cmd-input-bar">
+          <span class="cmd-prompt-label">C:\Users\Ultron&gt;</span>
+          <input type="text" class="cmd-input-field" id="cmdInputBox" placeholder="Enter command..." autocomplete="off">
+          <button type="button" class="cmd-exec-btn" onclick="executeCmdCommand()">RUN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Viewport -->
+    <div class="chat-viewport" id="chatViewport">
+      <div class="message msg-ultron">
+        <div class="sender">ULTRON // KNOWLEDGE ENGINE</div>
+        Hello, how can I help you today?
+      </div>
+    </div>
+
+    <!-- Quick Topics -->
+    <div class="quick-chips">
+      <div class="chip" onclick="quickSearch('Artificial intelligence')">🤖 Artificial Intelligence</div>
+      <div class="chip" onclick="quickSearch('Black hole')">🌌 Black Hole</div>
+      <div class="chip" onclick="quickSearch('Quantum computing')">⚛️ Quantum Computing</div>
+      <div class="chip" onclick="quickSearch('Python (programming language)')">🐍 Python</div>
+    </div>
+
+    <!-- Input Bar -->
     <div class="command-bar">
-      <input type="text" id="userInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
-      <button class="send-btn" onclick="sendMessage()">SEND</button>
+      <input type="text" id="cmdInput" placeholder="Search Wikipedia archives..." onkeypress="if(event.key==='Enter') searchWikipedia()">
+      <button class="send-btn" onclick="searchWikipedia()">SCAN</button>
     </div>
   </div>
 
   <script>
-    // 10-Second Boot Sequence simulation
+    // ================= 10-SECOND SMOOTH BOOT SEQUENCE =================
     window.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        document.getElementById('splash-screen').classList.add('fade-out');
-        document.getElementById('mainShell').classList.add('visible');
-      }, 1500);
+      const bootBar = document.getElementById('bootBar');
+      const bootText = document.getElementById('bootText');
+      const splashScreen = document.getElementById('splash-screen');
+      const mainShell = document.getElementById('mainShell');
 
-      // Register Service Worker for PWA
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-          .then(() => console.log('PWA Service Worker Registered'))
-          .catch(err => console.log('SW Registration Failed', err));
+      let progress = 0;
+      const stages = [
+        "LOADING GLASS MATRIX...",
+        "SYNCING WIKIPEDIA ARCHIVES...",
+        "MOUNTING MONACO VS & CMD...",
+        "STABILIZING NEURAL CORE...",
+        "SYSTEMS ONLINE."
+      ];
+
+      const bootInterval = setInterval(() => {
+        progress += 1;
+        if (progress > 100) progress = 100;
+        bootBar.style.width = progress + '%';
+
+        if (progress < 25) {
+          bootText.innerText = `${stages[0]} ${progress}%`;
+        } else if (progress < 50) {
+          bootText.innerText = `${stages[1]} ${progress}%`;
+        } else if (progress < 75) {
+          bootText.innerText = `${stages[2]} ${progress}%`;
+        } else if (progress < 100) {
+          bootText.innerText = `${stages[3]} ${progress}%`;
+        } else {
+          bootText.innerText = `${stages[4]} 100%`;
+          clearInterval(bootInterval);
+          setTimeout(() => {
+            splashScreen.classList.add('fade-out');
+            mainShell.classList.add('visible');
+          }, 300);
+        }
+      }, 100);
+    });
+
+    // ================= MONACO EDITOR INITIALIZATION =================
+    let monacoEditorInstance = null;
+    let activeCodeLang = 'python';
+
+    const codeTemplates = {
+      python: `print("Hello, ULTRON Monaco Hub!")\ndef calculate_power(base, exp):\n    return base ** exp\n\nresult = calculate_power(2, 8)\nprint(f"System Power Level: {result}")`,
+      html: `<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { background: #050a18; color: #00f3ff; font-family: sans-serif; text-align: center; padding-top: 20px; }\n    button { background: #ff5e00; color: #fff; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; }\n  </style>\n</head>\n<body>\n  <h2>ULTRON MINI GAME ARENA</h2>\n  <button onclick="alert('Target Locked!')">FIRE LASER</button>\n</body>\n</html>`,
+      javascript: `console.log("ULTRON JS Engine Online");\nconst scores = [120, 340, 560];\nconst total = scores.reduce((a, b) => a + b, 0);\nconsole.log("Total Game Score:", total);`,
+      css: `/* ULTRON Custom Neon Styles */\n.cyber-box {\n  background: rgba(0, 243, 255, 0.1);\n  border: 1px solid #00f3ff;\n  box-shadow: 0 0 15px #00f3ff;\n  border-radius: 10px;\n}`,
+      typescript: `interface UltronModule {\n  name: string;\n  version: number;\n  active: boolean;\n}\n\nconst core: UltronModule = { name: "MonacoHub", version: 2.0, active: true };\nconsole.log("Loaded:", core.name, "v" + core.version);`
+    };
+
+    const fileExtensions = { python: 'script.py', html: 'index.html', javascript: 'app.js', css: 'style.css', typescript: 'main.ts' };
+
+    if (typeof require !== 'undefined') {
+      require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+      require(['vs/editor/editor.main'], function () {
+        monacoEditorInstance = monaco.editor.create(document.getElementById('monacoContainer'), {
+          value: codeTemplates.python,
+          language: 'python',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          fontSize: 13,
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          roundedSelection: true,
+          padding: { top: 10 }
+        });
+      });
+    }
+
+    // ================= SYSTEM NAVIGATION & PANELS =================
+    const sixDotBtn = document.getElementById('sixDotBtn');
+    const navDrawer = document.getElementById('navDrawer');
+    const codingHubPanel = document.getElementById('codingHubPanel');
+    const cmdPanel = document.getElementById('cmdPanel');
+    const chatViewport = document.getElementById('chatViewport');
+    const cmdInput = document.getElementById('cmdInput');
+    const fileNameInput = document.getElementById('fileNameInput');
+    const outputTerminal = document.getElementById('outputTerminal');
+    const terminalOutputText = document.getElementById('terminalOutputText');
+
+    sixDotBtn.addEventListener('click', () => {
+      sixDotBtn.classList.toggle('active');
+      navDrawer.classList.toggle('open');
+    });
+
+    function toggleCodingHub() {
+      sixDotBtn.classList.remove('active');
+      navDrawer.classList.remove('open');
+      cmdPanel.classList.remove('open');
+      codingHubPanel.classList.toggle('open');
+      if (monacoEditorInstance) setTimeout(() => monacoEditorInstance.layout(), 350);
+    }
+
+    function toggleCmdPanel() {
+      sixDotBtn.classList.remove('active');
+      navDrawer.classList.remove('open');
+      codingHubPanel.classList.remove('open');
+      cmdPanel.classList.toggle('open');
+      if (cmdPanel.classList.contains('open')) {
+        setTimeout(() => document.getElementById('cmdInputBox').focus(), 300);
+      }
+    }
+
+    // Direct Enter key & Button support for CMD
+    document.getElementById('cmdInputBox').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        executeCmdCommand();
       }
     });
 
-    function sendMessage() {
-      const input = document.getElementById('userInput');
-      const text = input.value.trim();
-      if (!text) return;
+    function executeCmdCommand() {
+      const inputField = document.getElementById('cmdInputBox');
+      const history = document.getElementById('cmdOutputHistory');
+      const cmdText = inputField.value.trim();
+      if (!cmdText) return;
 
-      appendMsg(text, 'msg-user');
-      input.value = '';
+      history.innerHTML += `<div><span style="color:#00f3ff;">C:\\Users\\Ultron&gt;</span> ${escapeHtml(cmdText)}</div>`;
+      inputField.value = '';
 
-      setTimeout(() => {
-        appendMsg(`Echo from ULTRON: I received your message -> "${text}"`, 'msg-ultron');
-      }, 400);
+      const lowerCmd = cmdText.toLowerCase();
+      let response = '';
+
+      if (lowerCmd === 'help') {
+        response = `Available Commands:\n  HELP      - Show this command list\n  CLS       - Clear the CMD screen\n  DIR       - List files in current directory\n  VER       - Show Windows OS version\n  DATE      - Show current system date\n  TIME      - Show current system time\n  WHOAMI    - Show current user profile\n  IPCONFIG  - Show network IP details\n  ECHO      - Print text (e.g. echo Hello)\n  EXIT      - Close CMD window`;
+      } else if (lowerCmd === 'cls') {
+        history.innerHTML = '';
+        return;
+      } else if (lowerCmd === 'ver') {
+        response = `Microsoft Windows [Version 10.0.26100.1]`;
+      } else if (lowerCmd === 'date') {
+        response = `The current date is: ${new Date().toLocaleDateString()}`;
+      } else if (lowerCmd === 'time') {
+        response = `The current time is: ${new Date().toLocaleTimeString()}`;
+      } else if (lowerCmd === 'whoami') {
+        response = `ultron-pc\\sourajit`;
+      } else if (lowerCmd === 'ipconfig') {
+        response = `\nWindows IP Configuration\n\nEthernet adapter ULTRON-LAN:\n   IPv4 Address. . . . . . : 192.168.1.105\n   Subnet Mask . . . . . . : 255.255.255.0\n   Default Gateway . . . . : 192.168.1.1`;
+      } else if (lowerCmd === 'dir') {
+        response = ` Volume in drive C is ULTRON_SSD\n Directory of C:\\Users\\Ultron\n\n 11/14/2026  10:30 AM    <DIR>     .\n 11/14/2026  10:30 AM    <DIR>     ..\n 11/14/2026  10:35 AM         482 script.py\n 11/14/2026  10:40 AM       1,240 index.html\n               2 File(s)      1,722 bytes`;
+      } else if (lowerCmd.startsWith('echo ')) {
+        response = cmdText.substring(5);
+      } else if (lowerCmd === 'exit') {
+        toggleCmdPanel();
+        return;
+      } else {
+        response = `'${cmdText}' is not recognized as an internal or external command. Type "help" for commands.`;
+      }
+
+      history.innerHTML += `<div style="color:#a7f3d0; margin-bottom:6px;">${escapeHtml(response)}</div>`;
+      const cmdScreen = document.getElementById('cmdScreen');
+      cmdScreen.scrollTop = cmdScreen.scrollHeight;
     }
 
-    function appendMsg(text, className) {
-      const viewport = document.getElementById('chatViewport');
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Switch Language Tabs in Monaco Editor
+    function switchLanguage(lang, btnElement) {
+      activeCodeLang = lang;
+      document.querySelectorAll('.lang-tab').forEach(tab => tab.classList.remove('active'));
+      btnElement.classList.add('active');
+
+      fileNameInput.value = fileExtensions[lang];
+      hideOutput();
+
+      if (monacoEditorInstance) {
+        const model = monacoEditorInstance.getModel();
+        monaco.editor.setModelLanguage(model, lang);
+        monacoEditorInstance.setValue(codeTemplates[lang]);
+      }
+    }
+
+    function saveFile() {
+      const filename = fileNameInput.value.trim() || 'ultron_code.txt';
+      const content = monacoEditorInstance ? monacoEditorInstance.getValue() : '';
+      const blob = new Blob([content], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function hideOutput() { outputTerminal.classList.remove('active'); }
+
+    function runCode() {
+      outputTerminal.classList.add('active');
+      const code = monacoEditorInstance ? monacoEditorInstance.getValue() : '';
+      terminalOutputText.innerHTML = '';
+
+      if (activeCodeLang === 'html') {
+        const iframe = document.createElement('iframe');
+        iframe.className = 'live-preview-frame';
+        terminalOutputText.appendChild(iframe);
+        iframe.contentWindow.document.open();
+        iframe.contentWindow.document.write(code);
+        iframe.contentWindow.document.close();
+      } else if (activeCodeLang === 'css') {
+        terminalOutputText.innerText = `> CSS Stylesheet compiled successfully.\n[STATUS]: 0 errors found.`;
+      } else if (activeCodeLang === 'javascript' || activeCodeLang === 'typescript') {
+        let logs = [];
+        const customConsole = {
+          log: (...args) => logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')),
+          error: (...args) => logs.push('[ERROR]: ' + args.join(' ')),
+          warn: (...args) => logs.push('[WARN]: ' + args.join(' '))
+        };
+        try {
+          const cleanCode = activeCodeLang === 'typescript'
+            ? code.replace(/:\s*[A-Za-z0-9_<>\[\]|]+/g, '').replace(/interface\s+\w+\s*\{[^}]*\}/g, '')
+            : code;
+          const execFn = new Function('console', cleanCode);
+          execFn(customConsole);
+          terminalOutputText.innerText = `> Executing ${activeCodeLang.toUpperCase()}...\n` + (logs.length ? logs.join('\n') : '[Process completed with no console output]');
+        } catch (err) {
+          terminalOutputText.innerHTML = `<span style="color:#ff5e00;">[RUNTIME ERROR]: ${err.message}</span>`;
+        }
+      } else if (activeCodeLang === 'python') {
+        const printMatches = [...code.matchAll(/print\((?:f?["'])(.*?)(?:["'])\)/g)];
+        let outputLines = [`> python3 ${fileNameInput.value}`];
+        if (printMatches.length > 0) {
+          printMatches.forEach(m => outputLines.push(m[1]));
+        } else {
+          outputLines.push('[Process exited with code 0]');
+        }
+        terminalOutputText.innerText = outputLines.join('\n');
+      }
+    }
+
+    // ================= WIKI & CHAT LOGIC =================
+    let currentLang = 'en';
+
+    function setWikiLang(lang) {
+      currentLang = lang;
+      document.getElementById('langBadge').innerText = `WIKI: ${lang.toUpperCase()}`;
+      document.getElementById('btnEn').classList.toggle('active-tab', lang === 'en');
+      document.getElementById('btnBn').classList.toggle('active-tab', lang === 'bn');
+      sixDotBtn.classList.remove('active');
+      navDrawer.classList.remove('open');
+      appendHTML('ULTRON // SYSTEM', `Switched archive database to <b>${lang === 'en' ? 'English' : 'Bengali (বাংলা)'} Wikipedia</b>.`, 'msg-ultron');
+    }
+
+    function clearTerminal() {
+      chatViewport.innerHTML = '';
+      appendHTML('ULTRON // KNOWLEDGE ENGINE', 'Hello, how can I help you today?', 'msg-ultron');
+      sixDotBtn.classList.remove('active');
+      navDrawer.classList.remove('open');
+    }
+
+    function quickSearch(topic) {
+      cmdInput.value = topic;
+      searchWikipedia();
+    }
+
+    async function randomWikiArticle() {
+      sixDotBtn.classList.remove('active');
+      navDrawer.classList.remove('open');
+      const loadingId = appendHTML('ULTRON // ARCHIVE SCAN', 'Fetching random knowledge node...', 'msg-ultron');
+
+      try {
+        const res = await fetch(`https://${currentLang}.wikipedia.org/api/rest_v1/page/random/summary`);
+        const data = await res.json();
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+        displayWikiResult(data);
+      } catch (err) {
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+        appendHTML('ULTRON // ERROR', 'Unable to reach Wikipedia satellite.', 'msg-ultron');
+      }
+    }
+
+    async function searchWikipedia() {
+      const query = cmdInput.value.trim();
+      if (!query) return;
+
+      appendHTML('COMMANDER', query, 'msg-user');
+      cmdInput.value = '';
+
+      const loadingId = appendHTML('ULTRON // ARCHIVE SCAN', `Searching Wikipedia database for "<b>${query}</b>"...`, 'msg-ultron');
+
+      try {
+        const searchUrl = `https://${currentLang}.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=1&namespace=0&format=json&origin=*`;
+        const searchRes = await fetch(searchUrl);
+        const searchData = await searchRes.json();
+        const bestTitle = searchData[1][0];
+
+        if (!bestTitle) {
+          const loadingEl = document.getElementById(loadingId);
+          if (loadingEl) loadingEl.remove();
+          appendHTML('ULTRON // NO DATA', `No matching records found in Wikipedia for "<b>${query}</b>". Try another keyword.`, 'msg-ultron');
+          return;
+        }
+
+        const summaryUrl = `https://${currentLang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(bestTitle)}`;
+        const summaryRes = await fetch(summaryUrl);
+        const data = await summaryRes.json();
+
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+        displayWikiResult(data);
+
+      } catch (error) {
+        const loadingEl = document.getElementById(loadingId);
+        if (loadingEl) loadingEl.remove();
+        appendHTML('ULTRON // SYSTEM ERROR', 'Network interference detected while accessing Wikipedia.', 'msg-ultron');
+      }
+    }
+
+    function displayWikiResult(data) {
+      const title = data.title || 'Unknown Record';
+      const extract = data.extract || 'No summary description available for this entry.';
+      const pageUrl = data.content_urls ? data.content_urls.desktop.page : '#';
+
+      const htmlContent = `
+        <div class="wiki-card-title">${title}</div>
+        <div>${extract}</div>
+        <a href="${pageUrl}" target="_blank" class="wiki-link">ACCESS FULL ARCHIVE ↗</a>
+      `;
+      appendHTML('ULTRON // WIKIPEDIA DATA', htmlContent, 'msg-ultron');
+    }
+
+    function appendHTML(sender, html, type) {
       const div = document.createElement('div');
-      div.className = `message ${className}`;
-      div.innerText = text;
-      viewport.appendChild(div);
-      viewport.scrollTop = viewport.scrollHeight;
+      const id = 'msg-' + Date.now();
+      div.id = id;
+      div.className = `message ${type}`;
+      div.innerHTML = `<div class="sender">${sender}</div>${html}`;
+      chatViewport.appendChild(div);
+      chatViewport.scrollTop = chatViewport.scrollHeight;
+      return id;
     }
   </script>
 </body>
